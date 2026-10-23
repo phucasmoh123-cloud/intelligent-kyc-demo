@@ -690,7 +690,6 @@ def global_fallback(strategy, lines, is_image):
         return None
     if strategy == "gender":
         for l in lines:
-            # xét từng cụm tách bởi nhãn: chỉ nhận khi phần còn lại đúng là 'Nam'/'Nữ' (vd 'Giới tính: Nữ')
             rest = re.sub(r"gioi\s*tinh\s*[:;]?", " ", gender_clean(norm(l.text)))
             rest = re.sub(r"quoc\s*tich\s*[:;]?", " ", rest).strip(" :;.")
             if rest in ("nam", "nu"):
@@ -701,7 +700,7 @@ def global_fallback(strategy, lines, is_image):
             if "viet nam" in norm(l.text) and not l.text.isupper():
                 return "Việt Nam", l
         return None
-    if strategy == "name_upper":                  # dòng IN HOA 2-6 từ, không phải tiêu đề
+    if strategy == "name_upper":
         for l in lines:
             if any(w in norm(l.text) for w in HEADER_WORDS) or re.search(r"\d", l.text):
                 continue
@@ -727,7 +726,6 @@ def extract_fields(lines, doc_type, is_image):
         value, label_hit = "", None
         cands = sorted([h for h in kept if h.field == sp.name], key=lambda h: (h.rank, h.line, h.start))
 
-        # (1) Tìm theo nhãn
         for h in cands:
             v = normalize_value(sp.kind, extract_value(lines, kept, h, sp, is_image), is_image)
             if v:
@@ -735,7 +733,6 @@ def extract_fields(lines, doc_type, is_image):
                 break
             label_hit = label_hit or h
 
-        # (2) Tìm ở dòng lân cận nhãn (giá trị bị lệch dòng do OCR) - không áp dụng cho giới tính
         if not value and label_hit is not None and is_image and sp.kind != "gender":
             for j in (label_hit.line - 1, label_hit.line + 1):
                 if 0 <= j < len(lines):
@@ -744,7 +741,6 @@ def extract_fields(lines, doc_type, is_image):
                         value = v
                         break
 
-        # (3) Dự phòng toàn văn bản
         if not value and sp.fallback:
             fb = global_fallback(sp.fallback, lines, is_image)
             if fb:
@@ -756,7 +752,7 @@ def extract_fields(lines, doc_type, is_image):
 # ====================================================================
 # CELL 9 | Pipeline -> DataFrame + HTML
 # ====================================================================
-DEBUG_OCR = {}     # lưu văn bản OCR thô của từng file để kiểm tra khi trích xuất sai
+DEBUG_OCR = {}
 
 
 def process_file(path: str):
@@ -844,18 +840,17 @@ def summary_to_html(df_sum: pd.DataFrame) -> str:
 MISSING = "(không tìm thấy)"
 
 ST_OK, ST_WARN, ST_BAD, ST_NA = "✅ Khớp", "⚠️ Cần kiểm tra", "❌ Bất đồng", "➖ Thiếu dữ liệu"
-ST_INFO = "ℹ️ Lưu ý"      # khác nhau nhưng có thể hợp lệ -> không tính vào kết luận hồ sơ
+ST_INFO = "ℹ️ Lưu ý"
 SEV_HIGH, SEV_MID, SEV_LOW = "Cao", "Trung bình", "Thấp"
 DOC_SHORT = {DT_CCCD: "CCCD", DT_GXNDC: "GXNĐC", DT_KYC: "KYC"}
-REF_PRIORITY = [DT_CCCD, DT_GXNDC, DT_KYC]       # tài liệu nào làm "chuẩn" để so các tài liệu còn lại
+REF_PRIORITY = [DT_CCCD, DT_GXNDC, DT_KYC]
 
-TH_NAME_WARN = 88        # tên giống >= 88% (nhưng không khớp tuyệt đối) -> nghi lỗi OCR/đánh máy
-TH_ADDR_OK = 92          # một thành phần địa chỉ giống >= 92% (và cùng chữ số) -> khớp
-TH_ADDR_WARN = 80        # 80-92% -> cần kiểm tra; < 80% -> bất đồng
+TH_NAME_WARN = 88
+TH_ADDR_OK = 92
+TH_ADDR_WARN = 80
 
-# ---------------------------- tiện ích ------------------------------
+
 def _fold(s: str) -> str:
-    """Chuẩn hóa nhẹ (giữ dấu): NFC + gộp khoảng trắng + chữ thường."""
     return re.sub(r"\s+", " ", unicodedata.normalize("NFC", s)).strip().casefold()
 
 
@@ -868,7 +863,6 @@ def _digits(s: str) -> str:
 
 
 def _lev(a: str, b: str) -> int:
-    """Khoảng cách Levenshtein (số ký tự phải sửa để a -> b)."""
     if a == b:
         return 0
     prev = list(range(len(b) + 1))
@@ -880,7 +874,6 @@ def _lev(a: str, b: str) -> int:
     return prev[-1]
 
 
-# ----------------------- các hàm so sánh theo kiểu ------------------
 def cmp_name(a, b):
     ta, tb = _alnum_tokens(a), _alnum_tokens(b)
     ja, jb = " ".join(ta), " ".join(tb)
@@ -902,7 +895,6 @@ def cmp_id(a, b):
         return ST_NA, None, "Không đọc được dãy số"
     if da == db:
         return ST_OK, 100.0, ""
-    # Không coi khác biệt chỉ do số 0 ở đầu là khớp tuyệt đối; cần người kiểm tra bản gốc.
     if da.lstrip("0") == db.lstrip("0"):
         return ST_INFO, 100.0, "Chỉ khác số 0 ở đầu dãy số; cần đối chiếu bản gốc, không tự kết luận khớp"
     if {len(da), len(db)} == {9, 12}:
@@ -915,7 +907,6 @@ def cmp_id(a, b):
 
 
 def parse_dob(s: str):
-    """-> (ngày, tháng, năm) hoặc (None, None, năm) nếu chỉ có năm; None nếu không đọc được."""
     m = DATE_RE.search(s or "")
     if m:
         d, mo, y = map(int, m.groups())
@@ -946,8 +937,6 @@ def cmp_dob(a, b):
 def cmp_gender(a, b):
     return (ST_OK, 100.0, "") if norm(a) == norm(b) else (ST_BAD, 0.0, "Giới tính khác nhau")
 
-
-# ---- Địa chỉ: tách theo dấu phẩy, bỏ từ hành chính (Phường/Xã/Quận/Huyện/Tỉnh...), viết tắt -> đầy đủ ----
 ADDR_ABBR = {"tp": "thanh pho", "tt": "thi tran", "tx": "thi xa", "q": "quan", "h": "huyen",
              "p": "phuong", "x": "xa", "kp": "khu pho"}
 ADMIN_WORDS_RE = re.compile(r"\b(thanh pho|thi tran|thi xa|khu pho|tinh|quan|huyen|phuong|xa|"
@@ -963,7 +952,7 @@ def addr_segments(s: str):
         n = re.sub(r"\bhcmc?\b", "ho chi minh", n)
         n = re.sub(r"[^a-z0-9\s]", " ", n)
         toks = [ADDR_ABBR.get(t, t) for t in n.split()]
-        toks = [re.sub(r"^0+(\d)", r"\1", t) for t in toks]           # 'phuong 05' == 'phuong 5'
+        toks = [re.sub(r"^0+(\d)", r"\1", t) for t in toks]
         n = ADMIN_WORDS_RE.sub(" ", " ".join(toks))
         n = re.sub(r"\s+", " ", n).strip()
         if n:
@@ -1024,11 +1013,11 @@ CMP = {"name": cmp_name, "id": cmp_id, "dob": cmp_dob, "gender": cmp_gender, "ad
 
 @dataclass
 class CrossSpec:
-    label: str            # tên phép đối chiếu hiển thị
-    kind: str             # kiểu so sánh (khóa trong CMP)
-    severity: str         # mức độ nghiêm trọng nếu bất đồng
-    fields: dict          # {loại tài liệu: tên trường trong bảng trích xuất ở Phần 2}
-    soft: bool = False    # True: nếu khác nhau chỉ gắn "Lưu ý" (vì có thể hợp lệ), không ảnh hưởng kết luận
+    label: str
+    kind: str
+    severity: str
+    fields: dict
+    soft: bool = False
 
 
 CROSS_FIELDS = [
@@ -1297,7 +1286,6 @@ class KYCSummaryEngine:
         risk_score = 0
         actionable_requests = []
 
-        # 1. Kiểm tra file lỗi
         invalid_files = df_case_extract[df_case_extract["Loại tài liệu"] == DT_INVALID]["Tên file"].unique()
         if len(invalid_files) > 0:
             msg = f"Tệp tải lên không hợp lệ hoặc bị hỏng: {', '.join(invalid_files)}"
@@ -1305,7 +1293,6 @@ class KYCSummaryEngine:
             risk_score += 50
             actionable_requests.append(f"Yêu cầu tải lại các tệp bị lỗi: {', '.join(invalid_files)}")
 
-        # 2. Kiểm tra thiếu loại chứng từ
         uploaded_doc_types = set(df_case_extract[df_case_extract["Loại tài liệu"] != DT_INVALID]["Loại tài liệu"].unique())
         missing_doc_types = set(self.REQUIRED_DOCS) - uploaded_doc_types
 
@@ -1320,7 +1307,6 @@ class KYCSummaryEngine:
             for doc_m in missing_labels:
                 actionable_requests.append(f"Yêu cầu bổ sung tài liệu còn thiếu: {doc_m}")
 
-        # 3. Kiểm tra thiếu trường thông tin
         missing_fields_by_doc = {}
         for doc_type in uploaded_doc_types:
             df_doc = df_case_extract[df_case_extract["Loại tài liệu"] == doc_type]
@@ -1338,7 +1324,6 @@ class KYCSummaryEngine:
                 "detail": f"Trường thông tin còn trống - {details_str}"
             })
 
-        # 4. Gom cờ cảnh báo bất đồng từ Phần 3 (Cross-check)
         p3_flags = get_flags(df_case_cross)
         for flag in p3_flags:
             lvl = "HIGH" if flag["muc_do"] == SEV_HIGH else ("MEDIUM" if flag["muc_do"] == SEV_MID else "LOW")
@@ -1350,7 +1335,6 @@ class KYCSummaryEngine:
             risk_score += 30 if lvl == "HIGH" else 15
             actionable_requests.append(f"Yêu cầu làm rõ sai lệch [{flag['truong']}]: {flag['tai_lieu_1']} ({flag['gia_tri_1']}) so với {flag['tai_lieu_2']} ({flag['gia_tri_2']})")
 
-        # 5. Đưa ra Quyết định Đề xuất (Tiếng Việt)
         if risk_score >= 40 or any(f["level"] == "HIGH" for f in risk_flags):
             decision = "YÊU CẦU BỔ SUNG THÔNG TIN"
             summary_notes = "Hồ sơ chưa đạt yêu cầu do thiếu chứng từ/thông tin hoặc phát hiện điểm bất đồng dữ liệu nghiêm trọng giữa các giấy tờ."
@@ -1388,7 +1372,7 @@ class KYCSummaryEngine:
                 "is_complete": len(missing_doc_types) == 0 and len(missing_fields_by_doc) == 0 and len(p3_flags) == 0,
                 "missing_documents": list(missing_doc_types),
                 "missing_fields_by_doc": missing_fields_by_doc,
-                "actionable_requests": list(dict.fromkeys(actionable_requests))  # Loại bỏ trùng lặp
+                "actionable_requests": list(dict.fromkeys(actionable_requests))
             },
             "risk_flags": risk_flags
         }
@@ -1421,7 +1405,6 @@ def generate_kyc_dashboard_html(df_extract, df_cross, df_sum, group_mode="prefix
         color = "#2e9e5b" if "PHÊ DUYỆT" in dec else ("#d98a00" if "THỦ CÔNG" in dec else "#d64545")
         badge_bg = "#e1f5fe" if "PHÊ DUYỆT" in dec else ("#fff3e0" if "THỦ CÔNG" in dec else "#ffebee")
 
-        # Đánh giá lại phần Hiển thị Tính toàn vẹn chính xác
         reqs = rep["completeness_check"]["actionable_requests"]
         if rep["completeness_check"]["is_complete"]:
             req_html = "<li>✅ Hồ sơ đã đầy đủ chứng từ và thông tin chuẩn xác, không có sai lệch.</li>"
@@ -1479,8 +1462,6 @@ def generate_kyc_dashboard_html(df_extract, df_cross, df_sum, group_mode="prefix
 
     return "".join(html_blocks), json_path
 
-
-
 # ====================================================================
 # STREAMLIT UI — Intelligent KYC & Customer Onboarding
 # ====================================================================
@@ -1499,27 +1480,30 @@ st.set_page_config(
 st.markdown("""
 <style>
 :root {
-    --bg: #f5f0e8;
-    --bg-soft: #edf3eb;
-    --panel: #fffdf9;
-    --panel-alt: #f4efe5;
-    --primary: #476d4d;
-    --primary-deep: #2d472f;
-    --sage: #a8bc8a;
-    --terracotta: #c97c5a;
-    --sand: #e5c79f;
-    --text: #2d332d;
-    --muted: #5d685f;
-    --border: #d9cab3;
-    --shadow: rgba(67, 56, 41, 0.10);
-    --success: #567d59;
-    --warning: #cb8a4c;
-    --danger: #c95a4c;
+    --bg: #0b1726;
+    --bg-soft: #101f32;
+    --sidebar: #0b1622;
+    --panel: #11233a;
+    --panel-strong: #162d46;
+    --panel-alt: #14263d;
+    --border: #2b405a;
+    --primary: #86b9ff;
+    --primary-strong: #5f9df8;
+    --text: #edf6ff;
+    --muted: #b7cadf;
+    --success: #70dcac;
+    --warning: #ffca74;
+    --danger: #ff7d7d;
+    --shadow: rgba(1, 8, 18, 0.38);
 }
 
 html, body, [class*="css"],
 button, input, textarea, select {
-    font-family: "Segoe UI", Inter, -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
+    font-family: "Inter", "Segoe UI", "SF Pro Display", "Arial", sans-serif !important;
+}
+
+body, .stApp, .stApp * {
+    letter-spacing: 0.01em;
 }
 
 .stApp {
@@ -1529,97 +1513,83 @@ button, input, textarea, select {
 
 .block-container {
     max-width: 1500px;
-    padding-top: 1.5rem;
-    padding-bottom: 2.5rem;
+    padding-top: 1.4rem;
+    padding-bottom: 2rem;
 }
 
-h1, h2, h3, h4, h5, h6 {
-    color: var(--primary-deep) !important;
+h1, h2, h3, h4, h5, h6,
+section.main h1, section.main h2, section.main h3,
+section.main h4, section.main h5, section.main h6 {
+    color: var(--text) !important;
     letter-spacing: -0.02em;
     font-weight: 700 !important;
 }
 
 [data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #2f4c3d 0%, #1f382d 100%) !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: linear-gradient(180deg, var(--sidebar) 0%, #0d1b2d 100%) !important;
+    border-right: 1px solid var(--border) !important;
 }
 
 [data-testid="stSidebar"] * {
-    color: #f4f1ea !important;
+    color: var(--text) !important;
 }
 
-[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] * {
-    color: #f4f1ea !important;
+[data-testid="stMetric"],
+[data-testid="stExpander"],
+[data-testid="stDataFrame"],
+[data-testid="stTable"],
+[data-testid="stForm"],
+[data-testid="stVerticalBlockBorderWrapper"] > div,
+[data-testid="stFileUploader"] section,
+[data-testid="stFileUploaderDropzone"] {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-alt) 100%) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 10px 22px var(--shadow) !important;
 }
 
 [data-testid="stMetric"] {
-    background: var(--panel) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 16px !important;
-    padding: 18px !important;
-    box-shadow: 0 10px 22px var(--shadow) !important;
+    padding: 1rem 1.1rem !important;
+}
+
+[data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] *,
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] * {
+    color: var(--text) !important;
 }
 
 [data-testid="stMetricLabel"],
 [data-testid="stMetricLabel"] * {
-    color: var(--muted) !important;
+    opacity: 0.9;
+    font-weight: 600 !important;
 }
 
 [data-testid="stMetricValue"],
 [data-testid="stMetricValue"] * {
-    color: var(--primary-deep) !important;
-    font-weight: 700 !important;
+    font-size: 2rem !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
 }
 
 .stButton > button,
 .stDownloadButton > button,
 [data-testid="stFormSubmitButton"] > button {
-    background: linear-gradient(135deg, var(--primary) 0%, #678d66 100%) !important;
+    background: linear-gradient(135deg, var(--primary-strong) 0%, #6ca1ff 100%) !important;
     color: #ffffff !important;
-    border: none !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
     border-radius: 10px !important;
     font-weight: 700 !important;
     min-height: 2.6rem !important;
-    box-shadow: 0 8px 18px rgba(71, 109, 77, 0.22) !important;
+    box-shadow: 0 8px 18px rgba(90, 137, 255, 0.28) !important;
 }
 
 .stButton > button:hover,
 .stDownloadButton > button:hover,
 [data-testid="stFormSubmitButton"] > button:hover {
-    background: linear-gradient(135deg, #3e6044 0%, #567c5a 100%) !important;
+    background: linear-gradient(135deg, #5c8ef1 0%, #7eaefb 100%) !important;
     color: #ffffff !important;
-}
-
-[data-testid="stFileUploader"] section,
-[data-testid="stForm"],
-[data-testid="stExpander"],
-[data-testid="stDataFrame"],
-[data-testid="stTable"],
-[data-testid="stVerticalBlockBorderWrapper"] > div {
-    background: var(--panel) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 10px 22px var(--shadow) !important;
-}
-
-[data-testid="stFileUploader"] section {
-    border: 1px dashed #b9c7b1 !important;
-    background: linear-gradient(180deg, #fffdf7 0%, #f7f1e8 100%) !important;
-}
-
-input, textarea, select,
-[data-baseweb="input"] input,
-[data-baseweb="textarea"] textarea,
-[data-baseweb="select"] > div {
-    background: #ffffff !important;
-    color: var(--text) !important;
-    border: 1px solid #d7c8b2 !important;
-    border-radius: 10px !important;
-}
-
-input::placeholder, textarea::placeholder {
-    color: #7b867d !important;
-    opacity: 1 !important;
 }
 
 [data-testid="stAlert"],
@@ -1627,10 +1597,10 @@ input::placeholder, textarea::placeholder {
 [data-testid="stWarning"],
 [data-testid="stSuccess"],
 [data-testid="stError"] {
-    background: #f9f4ea !important;
+    background: rgba(19, 34, 52, 0.95) !important;
     color: var(--text) !important;
-    border: 1px solid #e7d8bf !important;
-    border-left: 5px solid var(--primary) !important;
+    border: 1px solid var(--border) !important;
+    border-left: 4px solid var(--primary) !important;
     border-radius: 12px !important;
 }
 
@@ -1640,46 +1610,89 @@ input::placeholder, textarea::placeholder {
 [data-testid="stSuccess"] *,
 [data-testid="stError"] * {
     color: var(--text) !important;
+}
+
+input, textarea, select,
+[data-baseweb="input"] input,
+[data-baseweb="textarea"] textarea,
+[data-baseweb="select"] > div,
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea,
+[data-testid="stNumberInput"] input,
+[data-testid="stDateInput"] input {
+    background: rgba(15, 28, 40, 0.85) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 10px !important;
+}
+
+input::placeholder, textarea::placeholder {
+    color: var(--muted) !important;
     opacity: 1 !important;
 }
 
-[data-testid="stAlert"] a {
-    color: var(--primary) !important;
-}
-
-section.main [data-testid="stRadio"] label *,
-section.main [data-testid="stCheckbox"] label *,
+section.main p,
+section.main li,
+section.main label,
+section.main [data-testid="stMarkdownContainer"],
 section.main [data-testid="stMarkdownContainer"] *,
-section.main [data-testid="stCaptionContainer"] * {
+section.main [data-testid="stCaptionContainer"],
+section.main [data-testid="stCaptionContainer"] *,
+section.main [data-testid="stWidgetLabel"],
+section.main [data-testid="stWidgetLabel"] * {
     color: var(--text) !important;
 }
 
+section.main [data-testid="stRadio"] label *,
+section.main [data-testid="stCheckbox"] label * {
+    color: var(--text) !important;
+}
+
+section.main table {
+    border-color: var(--border) !important;
+}
+
+section.main th {
+    background: #132845 !important;
+    color: #f4f9ff !important;
+    font-weight: 700 !important;
+    border-color: var(--border) !important;
+}
+
+section.main td {
+    background: #0d1b2b !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+
 .hero {
-    background: linear-gradient(135deg, #f6f0e4 0%, #edf2ea 100%);
-    border: 1px solid #d9cab3;
+    background: linear-gradient(180deg, rgba(18, 36, 56, 0.94) 0%, rgba(19, 34, 52, 0.96) 100%);
+    border: 1px solid var(--border);
     border-radius: 18px;
-    padding: 1.5rem 1.6rem;
-    box-shadow: 0 12px 24px var(--shadow);
-    margin-bottom: 1.2rem;
+    padding: 1.2rem 1.4rem;
+    box-shadow: 0 12px 22px var(--shadow);
+    margin-bottom: 1rem;
 }
 
 .eyebrow {
     display: inline-block;
+    background: rgba(134, 185, 255, 0.14);
+    border: 1px solid rgba(134, 185, 255, 0.28);
+    border-radius: 999px;
+    color: var(--primary) !important;
+    padding: 6px 10px;
     font-size: 11px;
+    font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    background: rgba(71, 109, 77, 0.12);
-    color: var(--primary-deep);
-    border-radius: 999px;
-    padding: 6px 10px;
-    font-weight: 700;
     margin-bottom: 10px;
 }
 
 .hero h1 {
     margin: 0;
-    font-size: clamp(2rem, 3vw, 2.7rem);
-    color: var(--primary-deep) !important;
+    font-size: clamp(2rem, 2.8vw, 2.7rem);
+    font-weight: 800 !important;
+    color: var(--text) !important;
 }
 
 .hero p {
@@ -1689,69 +1702,46 @@ section.main [data-testid="stCaptionContainer"] * {
 }
 
 .panel {
-    background: linear-gradient(180deg, #fffdf9 0%, #f4efe4 100%);
+    background: linear-gradient(180deg, rgba(19, 38, 57, 0.95) 0%, rgba(17, 30, 44, 0.96) 100%);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 1rem 1.1rem;
-    box-shadow: 0 10px 20px var(--shadow);
     height: 100%;
+    box-shadow: 0 10px 18px var(--shadow);
+}
+
+.panel h3 {
+    margin-top: 6px;
+    margin-bottom: 8px;
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
 }
 
 .small-note {
-    color: var(--muted);
+    color: var(--muted) !important;
     font-size: 0.92rem;
-    line-height: 1.6;
+    line-height: 1.55;
 }
 
-section.main table {
-    color: var(--text) !important;
-    border-color: var(--border) !important;
-}
-
-section.main th {
-    background: #edf0de !important;
-    color: var(--primary-deep) !important;
-    border-color: var(--border) !important;
-}
-
-section.main td {
-    background: #fffdf9 !important;
-    color: var(--text) !important;
-    border-color: var(--border) !important;
-}
-
-section.main div[style*="background: #ffffff"],
-section.main div[style*="background: #f8f9fa"],
-section.main div[style*="background: #f1f3f5"],
-section.main div[style*="background: #e9ecef"],
-section.main div[style*="background:#ffffff"],
-section.main div[style*="background:#f8f9fa"],
-section.main div[style*="background:#f1f3f5"],
-section.main div[style*="background:#e9ecef"] {
-    background: var(--panel) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-    box-shadow: 0 10px 20px var(--shadow) !important;
-}
-
-section.main div[style*="background: #ffffff"] *,
-section.main div[style*="background: #f8f9fa"] *,
-section.main div[style*="background: #f1f3f5"] *,
-section.main div[style*="background: #e9ecef"] *,
-section.main div[style*="background:#ffffff"] *,
-section.main div[style*="background:#f8f9fa"] *,
-section.main div[style*="background:#f1f3f5"] *,
-section.main div[style*="background:#e9ecef"] * {
+[data-testid="stFileUploader"] small,
+[data-testid="stFileUploader"] span,
+[data-testid="stSelectbox"] *,
+[data-testid="stMultiSelect"] *,
+[data-testid="stFileUploader"] label {
     color: var(--text) !important;
 }
+
+[role="listbox"], [role="option"], [data-baseweb="popover"],
+[data-baseweb="menu"], [data-baseweb="select"] [role="option"] {
+    background: #111f32 !important;
+    color: var(--text) !important;
+}
+
+[role="option"] * { color: var(--text) !important; }
 
 @media (max-width: 768px) {
-    .block-container {
-        padding: 1rem;
-    }
-    .hero {
-        padding: 1.1rem 1rem;
-    }
+    .block-container { padding: 1rem; }
+    .hero { padding: 1rem; }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1860,7 +1850,7 @@ if page == "Tổng quan":
     ]
     for col, (num, title, desc) in zip(cols, steps):
         with col:
-            st.markdown(f'<div class="panel"><div style="color:#315efb;font-weight:700">{num}</div><h3>{title}</h3><div class="small-note">{desc}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="panel"><div style="color:#a9c3ff;font-weight:700">{num}</div><h3>{title}</h3><div class="small-note">{desc}</div></div>', unsafe_allow_html=True)
     st.markdown("### Trạng thái xử lý gần nhất")
     if df_ex.empty:
         st.info("Chưa có dữ liệu trong phiên này. Vào **Tiếp nhận & trích xuất** để bắt đầu.")
