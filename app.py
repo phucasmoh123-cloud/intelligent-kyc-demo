@@ -1499,29 +1499,32 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-
 :root {
-    --navy: #142B4A;
-    --navy-light: #1C3E66;
-    --blue: #2457A7;
-    --blue-hover: #1A437F;
-    --bg: #F3F6FA;
-    --white: #FFFFFF;
-    --text: #243449;
-    --muted: #526176;
-    --border: #D8E1EC;
+    --bg: #f5f0e8;
+    --bg-soft: #edf3eb;
+    --panel: #fffdf9;
+    --panel-alt: #f4efe5;
+    --primary: #476d4d;
+    --primary-deep: #2d472f;
+    --sage: #a8bc8a;
+    --terracotta: #c97c5a;
+    --sand: #e5c79f;
+    --text: #2d332d;
+    --muted: #5d685f;
+    --border: #d9cab3;
+    --shadow: rgba(67, 56, 41, 0.10);
+    --success: #567d59;
+    --warning: #cb8a4c;
+    --danger: #c95a4c;
 }
 
-/* Font chữ thống nhất */
 html, body, [class*="css"],
 button, input, textarea, select {
-    font-family: Inter, -apple-system, BlinkMacSystemFont,
-                 "Segoe UI", Arial, sans-serif !important;
+    font-family: "Segoe UI", Inter, -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
 }
 
-/* Nền chính */
 .stApp {
-    background: var(--bg) !important;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%) !important;
     color: var(--text) !important;
 }
 
@@ -1531,30 +1534,31 @@ button, input, textarea, select {
     padding-bottom: 2.5rem;
 }
 
-/* Tiêu đề */
 h1, h2, h3, h4, h5, h6 {
-    font-family: Inter, -apple-system, BlinkMacSystemFont,
-                 "Segoe UI", Arial, sans-serif !important;
-    color: var(--navy) !important;
-    font-weight: 650 !important;
+    color: var(--primary-deep) !important;
     letter-spacing: -0.02em;
+    font-weight: 700 !important;
 }
 
-/* Thanh điều hướng bên trái */
 [data-testid="stSidebar"] {
-    background: var(--navy) !important;
+    background: linear-gradient(180deg, #2f4c3d 0%, #1f382d 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 [data-testid="stSidebar"] * {
-    color: #F5F8FC !important;
+    color: #f4f1ea !important;
 }
 
-/* Thẻ thống kê */
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] * {
+    color: #f4f1ea !important;
+}
+
 [data-testid="stMetric"] {
-    background: var(--white) !important;
+    background: var(--panel) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 12px !important;
-    padding: 16px !important;
+    border-radius: 16px !important;
+    padding: 18px !important;
+    box-shadow: 0 10px 22px var(--shadow) !important;
 }
 
 [data-testid="stMetricLabel"],
@@ -1564,109 +1568,194 @@ h1, h2, h3, h4, h5, h6 {
 
 [data-testid="stMetricValue"],
 [data-testid="stMetricValue"] * {
-    color: var(--navy) !important;
+    color: var(--primary-deep) !important;
     font-weight: 700 !important;
 }
 
-/* Nút bấm */
 .stButton > button,
 .stDownloadButton > button,
 [data-testid="stFormSubmitButton"] > button {
-    background: var(--blue) !important;
-    color: var(--white) !important;
-    border: 1px solid var(--blue) !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    min-height: 2.5rem;
+    background: linear-gradient(135deg, var(--primary) 0%, #678d66 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    min-height: 2.6rem !important;
+    box-shadow: 0 8px 18px rgba(71, 109, 77, 0.22) !important;
 }
 
 .stButton > button:hover,
 .stDownloadButton > button:hover,
 [data-testid="stFormSubmitButton"] > button:hover {
-    background: var(--blue-hover) !important;
-    color: var(--white) !important;
+    background: linear-gradient(135deg, #3e6044 0%, #567c5a 100%) !important;
+    color: #ffffff !important;
 }
 
-/* Khu vực tải hồ sơ */
+[data-testid="stFileUploader"] section,
+[data-testid="stForm"],
+[data-testid="stExpander"],
+[data-testid="stDataFrame"],
+[data-testid="stTable"],
+[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background: var(--panel) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 22px var(--shadow) !important;
+}
+
 [data-testid="stFileUploader"] section {
-    background: var(--white) !important;
-    border: 1px dashed #A9BCD3 !important;
+    border: 1px dashed #b9c7b1 !important;
+    background: linear-gradient(180deg, #fffdf7 0%, #f7f1e8 100%) !important;
+}
+
+input, textarea, select,
+[data-baseweb="input"] input,
+[data-baseweb="textarea"] textarea,
+[data-baseweb="select"] > div {
+    background: #ffffff !important;
+    color: var(--text) !important;
+    border: 1px solid #d7c8b2 !important;
+    border-radius: 10px !important;
+}
+
+input::placeholder, textarea::placeholder {
+    color: #7b867d !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stAlert"],
+[data-testid="stInfo"],
+[data-testid="stWarning"],
+[data-testid="stSuccess"],
+[data-testid="stError"] {
+    background: #f9f4ea !important;
+    color: var(--text) !important;
+    border: 1px solid #e7d8bf !important;
+    border-left: 5px solid var(--primary) !important;
     border-radius: 12px !important;
 }
 
-/* Ô nhập liệu và văn bản OCR */
-[data-testid="stTextInput"] input,
-[data-testid="stTextArea"] textarea,
-[data-testid="stNumberInput"] input,
-[data-testid="stDateInput"] input {
-    background: var(--white) !important;
+[data-testid="stAlert"] *,
+[data-testid="stInfo"] *,
+[data-testid="stWarning"] *,
+[data-testid="stSuccess"] *,
+[data-testid="stError"] * {
     color: var(--text) !important;
-    border: 1px solid #C8D4E2 !important;
-    border-radius: 8px !important;
+    opacity: 1 !important;
 }
 
-[data-testid="stTextArea"] textarea {
+[data-testid="stAlert"] a {
+    color: var(--primary) !important;
+}
+
+section.main [data-testid="stRadio"] label *,
+section.main [data-testid="stCheckbox"] label *,
+section.main [data-testid="stMarkdownContainer"] *,
+section.main [data-testid="stCaptionContainer"] * {
+    color: var(--text) !important;
+}
+
+.hero {
+    background: linear-gradient(135deg, #f6f0e4 0%, #edf2ea 100%);
+    border: 1px solid #d9cab3;
+    border-radius: 18px;
+    padding: 1.5rem 1.6rem;
+    box-shadow: 0 12px 24px var(--shadow);
+    margin-bottom: 1.2rem;
+}
+
+.eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(71, 109, 77, 0.12);
+    color: var(--primary-deep);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: clamp(2rem, 3vw, 2.7rem);
+    color: var(--primary-deep) !important;
+}
+
+.hero p {
+    margin: 8px 0 0;
+    color: var(--muted) !important;
+    font-size: 1rem;
+}
+
+.panel {
+    background: linear-gradient(180deg, #fffdf9 0%, #f4efe4 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 10px 20px var(--shadow);
+    height: 100%;
+}
+
+.small-note {
+    color: var(--muted);
+    font-size: 0.92rem;
     line-height: 1.6;
 }
 
-/* Bảng dữ liệu */
-[data-testid="stDataFrame"],
-[data-testid="stTable"] {
-    background: var(--white) !important;
+section.main table {
     color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 10px !important;
-}
-
-/* Khung nội dung mở rộng */
-[data-testid="stExpander"] {
-    background: var(--white) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 10px !important;
-}
-
-/* Chú thích */
-[data-testid="stCaptionContainer"] {
-    color: var(--muted) !important;
-}
-
-hr {
     border-color: var(--border) !important;
 }
 
-/* Tăng độ tương phản cho thông báo, radio và nội dung chính */
-[data-testid="stAlert"] {
-    color: #243449 !important;
+section.main th {
+    background: #edf0de !important;
+    color: var(--primary-deep) !important;
+    border-color: var(--border) !important;
 }
-[data-testid="stAlert"] p,
-[data-testid="stAlert"] div,
-[data-testid="stAlert"] span,
-[data-testid="stAlert"] li {
-    color: #243449 !important;
+
+section.main td {
+    background: #fffdf9 !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
 }
-[data-testid="stAlert"] a {
-    color: #174EA6 !important;
-    text-decoration: underline !important;
+
+section.main div[style*="background: #ffffff"],
+section.main div[style*="background: #f8f9fa"],
+section.main div[style*="background: #f1f3f5"],
+section.main div[style*="background: #e9ecef"],
+section.main div[style*="background:#ffffff"],
+section.main div[style*="background:#f8f9fa"],
+section.main div[style*="background:#f1f3f5"],
+section.main div[style*="background:#e9ecef"] {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 10px 20px var(--shadow) !important;
 }
-/* Giữ màu chữ dễ đọc trên nền xanh/vàng/đỏ nhạt của các hộp trạng thái */
-[data-testid="stAlert"] [data-testid="stMarkdownContainer"] * {
-    color: #243449 !important;
+
+section.main div[style*="background: #ffffff"] *,
+section.main div[style*="background: #f8f9fa"] *,
+section.main div[style*="background: #f1f3f5"] *,
+section.main div[style*="background: #e9ecef"] *,
+section.main div[style*="background:#ffffff"] *,
+section.main div[style*="background:#f8f9fa"] *,
+section.main div[style*="background:#f1f3f5"] *,
+section.main div[style*="background:#e9ecef"] * {
+    color: var(--text) !important;
 }
-/* Nội dung radio/checkbox trong vùng chính: không dùng chữ trắng trên nền sáng */
-section.main [data-testid="stRadio"] label,
-section.main [data-testid="stRadio"] label p,
-section.main [data-testid="stCheckbox"] label,
-section.main [data-testid="stCheckbox"] label p,
-section.main [data-testid="stMarkdownContainer"],
-section.main [data-testid="stMarkdownContainer"] p,
-section.main [data-testid="stMarkdownContainer"] li,
-section.main [data-testid="stCaptionContainer"] {
-    color: #243449 !important;
+
+@media (max-width: 768px) {
+    .block-container {
+        padding: 1rem;
+    }
+    .hero {
+        padding: 1.1rem 1rem;
+    }
 }
-/* Radio option text may be wrapped in several nested elements */
-section.main [data-testid="stRadio"] label * {
-    color: #243449 !important;
-}
+</style>
+""", unsafe_allow_html=True)
 
 /* ===== PROFESSIONAL DARK THEME ===== */
 :root {
