@@ -102,6 +102,23 @@ class Line:
 def lines_to_text(lines) -> str:
     return "\n".join(l.text for l in lines)
 
+
+def highlight_ocr_debug(lines, threshold: float = 0.72) -> str:
+    """Hiển thị OCR debug dạng HTML, tô vàng các chữ có độ tin cậy thấp để dễ kiểm tra."""
+    html_parts = []
+    for idx, line in enumerate(lines):
+        chunks = []
+        for start, end, conf in line.words:
+            text = line.text[start:end]
+            if not text.strip():
+                continue
+            cls = "ocr-good" if conf >= threshold else "ocr-weak"
+            title = f"confidence={conf:.2f}"
+            chunks.append(f'<span class="{cls}" title="{title}">{html.escape(text)}</span>')
+        text_html = " ".join(chunks) if chunks else html.escape(line.text)
+        html_parts.append(f"<div class=\"ocr-line\"><span class=\"ocr-index\">{idx:02d}</span> <span>{text_html}</span></div>")
+    return "\n".join(html_parts)
+
 # ====================================================================
 # CELL 4 | Đọc tài liệu: OCR (ảnh) & DOCX
 # ====================================================================
@@ -415,7 +432,7 @@ def repair_address(t: str) -> str:
         fixed.append(seg)
     if fixed:
         last = fixed[-1]
-        m = re.match(r"(?i)^((?:tinh|tỉnh|thanh pho|thành phố|tp\.?)\s+)?(.+)$", last)
+        m = re.match(r"(?i)^((?:tinh|tỉnh|thanh pho|thành phố|tp\.? )\s+)?(.+)$", last)
         prefix, core = (m.group(1) or ""), m.group(2)
         best = max(_PROV_N, key=lambda pn: _fuzzy_ratio(norm(core), pn[0]))
         if _fuzzy_ratio(norm(core), best[0]) >= 88:
@@ -771,7 +788,7 @@ def process_file(path: str):
             detail += " | Chất lượng ảnh: " + "; ".join(quality_notes)
         return [[fname, DT_INVALID, "-", detail]], [fname, DT_INVALID, detail]
 
-    DEBUG_OCR[fname] = "\n".join(f"{i:02d} | {l.text}" for i, l in enumerate(lines))
+    DEBUG_OCR[fname] = highlight_ocr_debug(lines)
     doc_type, _, _ = classify_document(lines)
     conf = average_ocr_confidence(lines) if is_image else None
     quality_summary = ""
@@ -1466,7 +1483,7 @@ def generate_kyc_dashboard_html(df_extract, df_cross, df_sum, group_mode="prefix
             <details style="margin-top: 15px; background: #f1f3f5; padding: 10px; border-radius: 6px;">
                 <summary style="cursor: pointer; font-weight: bold; color: #1f4e79;">🔍 Xem bảng thông số trích xuất chi tiết ({len(df_case_ex)} trường)</summary>
                 <table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
-                    <tr style="background: #e9ecef;"><th style="padding: 6px; text-align:left;">Tên file</th><th style="padding: 6px; text-align:left;">Loại tài liệu</th><th style="padding: 6px; text-align:left;">Tên trường</th><th style="padding: 6px; text-align:left;">Giá trị</th></tr>
+                    <tr style="background: #e9ecef;"><th style="padding: 6px; text-align:left;">Tên file</th><th style="padding: 6px; text-align:left;">Loại tài liệu</th><th style="padding: 6px; text-align:left;">Tên trường</th><th style="padding: 6px; text-align:left;">Giá trị trích xuất</th></tr>
                     {fields_table_rows}
                 </table>
             </details>
@@ -1479,7 +1496,6 @@ def generate_kyc_dashboard_html(df_extract, df_cross, df_sum, group_mode="prefix
         json.dump(reports, f, ensure_ascii=False, indent=4)
 
     return "".join(html_blocks), json_path
-
 
 
 # ====================================================================
@@ -1499,381 +1515,246 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-
 :root {
-    --navy: #142B4A;
-    --navy-light: #1C3E66;
-    --blue: #2457A7;
-    --blue-hover: #1A437F;
-    --bg: #F3F6FA;
-    --white: #FFFFFF;
-    --text: #243449;
-    --muted: #526176;
-    --border: #D8E1EC;
+    --bank-bg: #f3f6fb;
+    --bank-panel: #ffffff;
+    --bank-panel-alt: #f8fafc;
+    --bank-navy: #102845;
+    --bank-navy-soft: #173961;
+    --bank-blue: #1f5fbf;
+    --bank-blue-soft: #dfeafc;
+    --bank-gold: #caa14d;
+    --bank-border: #d9e2ed;
+    --bank-text: #1f2d3d;
+    --bank-muted: #5b6b7d;
+    --bank-danger: #cc3e4f;
+    --bank-warn: #d38a00;
+    --bank-success: #1c8c6a;
+    --bank-badge: #edf4ff;
+    --bank-shadow: rgba(16,40,69,0.12);
 }
 
-/* Font chữ thống nhất */
-html, body, [class*="css"],
-button, input, textarea, select {
-    font-family: Inter, -apple-system, BlinkMacSystemFont,
-                 "Segoe UI", Arial, sans-serif !important;
+html, body, [class*="css"], button, input, textarea, select {
+    font-family: "Segoe UI", "Inter", Arial, sans-serif !important;
 }
 
-/* Nền chính */
 .stApp {
-    background: var(--bg) !important;
-    color: var(--text) !important;
+    background: linear-gradient(180deg, #f3f6fb 0%, #edf3fb 100%) !important;
+    color: var(--bank-text) !important;
 }
 
 .block-container {
-    max-width: 1500px;
-    padding-top: 1.5rem;
-    padding-bottom: 2.5rem;
+    max-width: 1550px !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 2.5rem !important;
 }
 
-/* Tiêu đề */
 h1, h2, h3, h4, h5, h6 {
-    font-family: Inter, -apple-system, BlinkMacSystemFont,
-                 "Segoe UI", Arial, sans-serif !important;
-    color: var(--navy) !important;
-    font-weight: 650 !important;
-    letter-spacing: -0.02em;
-}
-
-/* Thanh điều hướng bên trái */
-[data-testid="stSidebar"] {
-    background: var(--navy) !important;
-}
-
-[data-testid="stSidebar"] * {
-    color: #F5F8FC !important;
-}
-
-/* Thẻ thống kê */
-[data-testid="stMetric"] {
-    background: var(--white) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 12px !important;
-    padding: 16px !important;
-}
-
-[data-testid="stMetricLabel"],
-[data-testid="stMetricLabel"] * {
-    color: var(--muted) !important;
-}
-
-[data-testid="stMetricValue"],
-[data-testid="stMetricValue"] * {
-    color: var(--navy) !important;
+    color: var(--bank-navy) !important;
+    letter-spacing: -0.02em !important;
     font-weight: 700 !important;
 }
 
-/* Nút bấm */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, var(--bank-navy) 0%, var(--bank-navy-soft) 100%) !important;
+    border-right: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+[data-testid="stSidebar"] * {
+    color: #edf5ff !important;
+}
+
+[data-testid="stMetric"] {
+    background: var(--bank-panel) !important;
+    border: 1px solid var(--bank-border) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 8px 18px var(--bank-shadow) !important;
+    padding: 18px !important;
+}
+
+[data-testid="stMetricLabel"], [data-testid="stMetricLabel"] * {
+    color: var(--bank-muted) !important;
+}
+
+[data-testid="stMetricValue"], [data-testid="stMetricValue"] * {
+    color: var(--bank-navy) !important;
+    font-weight: 700 !important;
+}
+
 .stButton > button,
 .stDownloadButton > button,
 [data-testid="stFormSubmitButton"] > button {
-    background: var(--blue) !important;
-    color: var(--white) !important;
-    border: 1px solid var(--blue) !important;
-    border-radius: 8px !important;
+    background: linear-gradient(180deg, var(--bank-blue) 0%, #19478d 100%) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    border-radius: 10px !important;
     font-weight: 600 !important;
-    min-height: 2.5rem;
+    min-height: 2.6rem !important;
+    box-shadow: 0 6px 14px rgba(31,95,191,0.18) !important;
 }
 
 .stButton > button:hover,
 .stDownloadButton > button:hover,
 [data-testid="stFormSubmitButton"] > button:hover {
-    background: var(--blue-hover) !important;
-    color: var(--white) !important;
+    background: linear-gradient(180deg, #19478d 0%, #123a72 100%) !important;
 }
 
-/* Khu vực tải hồ sơ */
-[data-testid="stFileUploader"] section {
-    background: var(--white) !important;
-    border: 1px dashed #A9BCD3 !important;
-    border-radius: 12px !important;
+[data-testid="stFileUploader"] section,
+[data-testid="stExpander"],
+[data-testid="stDataFrame"],
+[data-testid="stTable"],
+[data-testid="stForm"],
+[data-testid="stVerticalBlockBorderWrapper"] > div,
+[data-testid="stTabs"] > div {
+    background: var(--bank-panel) !important;
+    border: 1px solid var(--bank-border) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 8px 18px var(--bank-shadow) !important;
 }
 
-/* Ô nhập liệu và văn bản OCR */
-[data-testid="stTextInput"] input,
-[data-testid="stTextArea"] textarea,
-[data-testid="stNumberInput"] input,
-[data-testid="stDateInput"] input {
-    background: var(--white) !important;
-    color: var(--text) !important;
-    border: 1px solid #C8D4E2 !important;
+input, textarea, select,
+[data-baseweb="input"] input,
+[data-baseweb="textarea"] textarea,
+[data-baseweb="select"] > div {
+    background: #ffffff !important;
+    color: var(--bank-text) !important;
+    border: 1px solid var(--bank-border) !important;
     border-radius: 8px !important;
 }
 
-[data-testid="stTextArea"] textarea {
-    line-height: 1.6;
+input::placeholder, textarea::placeholder {
+    color: var(--bank-muted) !important;
 }
 
-/* Bảng dữ liệu */
-[data-testid="stDataFrame"],
-[data-testid="stTable"] {
-    background: var(--white) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 10px !important;
-}
-
-/* Khung nội dung mở rộng */
-[data-testid="stExpander"] {
-    background: var(--white) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 10px !important;
-}
-
-/* Chú thích */
-[data-testid="stCaptionContainer"] {
-    color: var(--muted) !important;
-}
-
-hr {
-    border-color: var(--border) !important;
-}
-
-/* Tăng độ tương phản cho thông báo, radio và nội dung chính */
-[data-testid="stAlert"] {
-    color: #243449 !important;
-}
-[data-testid="stAlert"] p,
-[data-testid="stAlert"] div,
-[data-testid="stAlert"] span,
-[data-testid="stAlert"] li {
-    color: #243449 !important;
-}
-[data-testid="stAlert"] a {
-    color: #174EA6 !important;
-    text-decoration: underline !important;
-}
-/* Giữ màu chữ dễ đọc trên nền xanh/vàng/đỏ nhạt của các hộp trạng thái */
-[data-testid="stAlert"] [data-testid="stMarkdownContainer"] * {
-    color: #243449 !important;
-}
-/* Nội dung radio/checkbox trong vùng chính: không dùng chữ trắng trên nền sáng */
-section.main [data-testid="stRadio"] label,
-section.main [data-testid="stRadio"] label p,
-section.main [data-testid="stCheckbox"] label,
-section.main [data-testid="stCheckbox"] label p,
-section.main [data-testid="stMarkdownContainer"],
-section.main [data-testid="stMarkdownContainer"] p,
-section.main [data-testid="stMarkdownContainer"] li,
-section.main [data-testid="stCaptionContainer"] {
-    color: #243449 !important;
-}
-/* Radio option text may be wrapped in several nested elements */
-section.main [data-testid="stRadio"] label * {
-    color: #243449 !important;
-}
-
-/* ===== PROFESSIONAL DARK THEME ===== */
-:root {
-    color-scheme: dark;
-    --navy: #e8eef8;
-    --navy-light: #c7d5e8;
-    --blue: #3978d4;
-    --blue-hover: #2d65b8;
-    --bg: #0b1220;
-    --white: #151f30;
-    --text: #e6edf7;
-    --muted: #a8b6ca;
-    --border: #2b3a50;
-}
-.stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], section.main {
-    background: #0b1220 !important;
-    color: #e6edf7 !important;
-}
-.block-container { color: #e6edf7 !important; }
-section.main h1, section.main h2, section.main h3,
-section.main h4, section.main h5, section.main h6 { color: #f1f5fb !important; }
-section.main p, section.main li, section.main label,
-section.main [data-testid="stMarkdownContainer"],
-section.main [data-testid="stMarkdownContainer"] *,
-section.main [data-testid="stCaptionContainer"] { color: #d5dfed !important; }
-[data-testid="stSidebar"], [data-testid="stSidebar"] > div {
-    background: #101b2c !important;
-    border-right: 1px solid #26364d !important;
-}
-[data-testid="stSidebar"] * { color: #e4ecf7 !important; }
-[data-testid="stMetric"], [data-testid="stExpander"],
-[data-testid="stDataFrame"], [data-testid="stTable"],
-[data-testid="stForm"], [data-testid="stFileUploader"] section,
-[data-testid="stVerticalBlockBorderWrapper"] > div {
-    background: #141f30 !important;
-    color: #e6edf7 !important;
-    border-color: #2c3d54 !important;
-}
-[data-testid="stMetricLabel"], [data-testid="stMetricLabel"] *,
-[data-testid="stMetricValue"], [data-testid="stMetricValue"] * { color: #f1f5fb !important; }
-input, textarea, select, [data-baseweb="input"] input,
-[data-baseweb="textarea"] textarea, [data-baseweb="select"] > div {
-    background: #0f1928 !important;
-    color: #f1f5fb !important;
-    border-color: #3a4d67 !important;
-}
-input::placeholder, textarea::placeholder { color: #9aabc2 !important; }
-.stButton > button, .stDownloadButton > button,
-[data-testid="stFormSubmitButton"] > button {
-    background: #2868c7 !important; color: #ffffff !important;
-    border: 1px solid #4b8be8 !important; border-radius: 8px !important;
-}
-.stButton > button:hover, .stDownloadButton > button:hover,
-[data-testid="stFormSubmitButton"] > button:hover { background: #3479dc !important; }
-[data-testid="stAlert"] { background: #172438 !important; border: 1px solid #344964 !important; }
-[data-testid="stAlert"] *, [data-testid="stAlert"] p,
-[data-testid="stAlert"] span, [data-testid="stAlert"] div { color: #e8eef8 !important; }
-[data-testid="stAlert"] a { color: #8dbaff !important; }
-[data-testid="stRadio"] label *, [data-testid="stCheckbox"] label * { color: #e1eaf6 !important; }
-[data-testid="stTabs"] button { color: #c8d6e8 !important; }
-[data-testid="stTabs"] button[aria-selected="true"] { color: #8dbaff !important; }
-[data-testid="stProgressBar"] > div { background: #25364d !important; }
-hr { border-color: #2b3a50 !important; }
-/* HTML report cards: override older inline light backgrounds while retaining semantic status accents */
-section.main div[style*="background: #ffffff"],
-section.main div[style*="background: #f8f9fa"],
-section.main div[style*="background: #f1f3f5"],
-section.main div[style*="background: #e9ecef"] {
-    background: #141f30 !important; color: #e6edf7 !important;
-    border-color: #30435d !important;
-}
-section.main div[style*="background: #ffffff"] *,
-section.main div[style*="background: #f8f9fa"] *,
-section.main div[style*="background: #f1f3f5"] *,
-section.main div[style*="background: #e9ecef"] * { color: #e1eaf6 !important; }
-section.main table { color: #e1eaf6 !important; border-color: #34465f !important; }
-section.main th { background: #1d2d43 !important; color: #f1f5fb !important; }
-section.main td { background: #141f30 !important; color: #dbe5f2 !important; border-color: #34465f !important; }
-[data-testid="stFileUploader"] small, [data-testid="stFileUploader"] span { color: #c8d6e8 !important; }
-[data-testid="stSelectbox"] *, [data-testid="stMultiSelect"] * { color: #e6edf7 !important; }
-
-/* Hiển thị trên màn hình nhỏ */
-@media (max-width: 768px) {
-    .block-container {
-        padding: 1rem;
-    }
-}
-
-
-
-/* FINAL DARK CONTRAST OVERRIDES */
-[data-testid="stAlert"], [data-testid="stAlert"] > div,
-[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
-[data-testid="stInfo"], [data-testid="stWarning"],
-[data-testid="stSuccess"], [data-testid="stError"] {
-    background: #172438 !important; color: #F3F7FF !important;
-    border-color: #49617f !important;
-}
-[data-testid="stAlert"] *, [data-testid="stAlert"] p,
-[data-testid="stAlert"] div, [data-testid="stAlert"] span,
-[data-testid="stAlert"] li, [data-testid="stAlert"] strong,
-[data-testid="stAlert"] em, [data-testid="stInfo"] *,
-[data-testid="stWarning"] *, [data-testid="stSuccess"] *,
-[data-testid="stError"] * {
-    color: #F3F7FF !important; opacity: 1 !important;
-}
-[data-testid="stAlert"] a { color: #9CC7FF !important; }
-[data-testid="stRadio"] label *, [data-testid="stCheckbox"] label *,
-[data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li,
-[data-testid="stCaptionContainer"] { color: #DCE7F7 !important; }
-[data-testid="stSelectbox"] label, [data-testid="stTextInput"] label,
-[data-testid="stTextArea"] label, [data-testid="stFileUploader"] label {
-    color: #E6EDF7 !important;
-}
-[data-testid="stFileUploader"] section, [data-testid="stFileUploader"] section * {
-    color: #E6EDF7 !important;
-}
-[data-testid="stFileUploader"] button {
-    background: #263a55 !important; color: #FFFFFF !important; border-color: #57769e !important;
-}
-/* GLOBAL DARK THEME CONTRAST: all steps, widgets, dropdowns and custom HTML */
-:root { color-scheme: dark !important; }
-.stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"],
-section.main, .block-container { background-color: #0b1220 !important; color: #e6edf7 !important; }
 section.main [data-testid="stMarkdownContainer"],
 section.main [data-testid="stMarkdownContainer"] *,
 section.main p, section.main li, section.main label,
-section.main [data-testid="stWidgetLabel"],
-section.main [data-testid="stWidgetLabel"] *,
 section.main [data-testid="stCaptionContainer"],
-section.main [data-testid="stCaptionContainer"] *,
-section.main [data-testid="stHelp"], section.main [data-testid="stHelp"] * {
-  color: #e1eaf6 !important; opacity: 1 !important;
+section.main [data-testid="stWidgetLabel"],
+section.main [data-testid="stWidgetLabel"] * {
+    color: var(--bank-text) !important;
 }
-section.main h1, section.main h2, section.main h3, section.main h4,
-section.main h5, section.main h6 { color: #f5f8ff !important; }
-/* Alerts: readable light text on dark surfaces */
-[data-testid="stAlert"], [data-testid="stAlert"] > div,
-[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
-[data-testid="stInfo"], [data-testid="stWarning"],
-[data-testid="stSuccess"], [data-testid="stError"] {
-  background: #172438 !important; color: #f3f7ff !important;
-  border-color: #49617f !important;
+
+[data-testid="stAlert"],
+[data-testid="stInfo"],
+[data-testid="stWarning"],
+[data-testid="stSuccess"],
+[data-testid="stError"] {
+    background: #ffffff !important;
+    border: 1px solid var(--bank-border) !important;
+    border-left: 5px solid #1e5bb7 !important;
+    color: var(--bank-text) !important;
+    border-radius: 12px !important;
 }
-[data-testid="stAlert"] *, [data-testid="stInfo"] *,
-[data-testid="stWarning"] *, [data-testid="stSuccess"] *,
-[data-testid="stError"] * { color: #f3f7ff !important; opacity: 1 !important; }
-/* Text inputs, selectboxes, multiselect chips, date/time and number inputs */
-input, textarea, select, [data-baseweb="input"] input,
-[data-baseweb="textarea"] textarea, [data-baseweb="select"] *,
-[data-testid="stTextInput"] *, [data-testid="stTextArea"] *,
-[data-testid="stNumberInput"] *, [data-testid="stDateInput"] *,
-[data-testid="stTimeInput"] *, [data-testid="stMultiSelect"] *,
-[data-testid="stSelectbox"] *, [data-testid="stSlider"] *,
-[data-testid="stRadio"] label *, [data-testid="stCheckbox"] label *,
-[data-testid="stToggle"] label *, [data-testid="stFileUploader"] * {
-  color: #eaf1fb !important;
+
+[data-testid="stAlert"] *,
+[data-testid="stInfo"] *,
+[data-testid="stWarning"] *,
+[data-testid="stSuccess"] *,
+[data-testid="stError"] * {
+    color: var(--bank-text) !important;
 }
-input, textarea, select, [data-baseweb="input"] input,
-[data-baseweb="textarea"] textarea, [data-baseweb="select"] > div {
-  background-color: #0f1928 !important; border-color: #3a4d67 !important;
+
+/* CSS phụ trợ cho OCR debug */
+.ocr-panel {
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f6fd 100%) !important;
+    border: 1px solid #dbe7f7 !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+    font-family: "Consolas", "SFMono-Regular", monospace !important;
+    color: #1a2a3c !important;
 }
-input::placeholder, textarea::placeholder { color: #a8b8ce !important; opacity: 1 !important; }
-/* Dropdown popup may render outside the main section */
-[role="listbox"], [role="option"], [data-baseweb="popover"],
-[data-baseweb="menu"], [data-baseweb="select"] [role="option"] {
-  background: #141f30 !important; color: #eaf1fb !important;
+
+.ocr-header {
+    display: inline-block;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #113562;
+    background: var(--bank-blue-soft);
+    border: 1px solid #cfe0fb;
+    border-radius: 8px;
+    margin-bottom: 10px;
 }
-[role="option"] *, [role="listbox"] * { color: #eaf1fb !important; }
-/* Upload panel and buttons */
-[data-testid="stFileUploader"], [data-testid="stFileUploader"] section,
-[data-testid="stFileUploaderDropzone"] { background: #141f30 !important; color: #eaf1fb !important; border-color: #3a4d67 !important; }
-.stButton button, .stDownloadButton button, [data-testid="stFormSubmitButton"] button {
-  background: #2868c7 !important; color: #ffffff !important; border-color: #4b8be8 !important;
+
+.ocr-line {
+    padding: 4px 0;
+    line-height: 1.6;
+    border-bottom: 1px solid rgba(17,53,98,0.05);
 }
-.stButton button *, .stDownloadButton button *, [data-testid="stFormSubmitButton"] button * { color: #ffffff !important; }
-/* Expander, tabs, forms, tables and metric cards */
-[data-testid="stExpander"], [data-testid="stExpander"] details,
-[data-testid="stForm"], [data-testid="stVerticalBlockBorderWrapper"] > div,
-[data-testid="stMetric"], [data-testid="stDataFrame"], [data-testid="stTable"] {
-  background: #141f30 !important; color: #e6edf7 !important; border-color: #2c3d54 !important;
+
+.ocr-index {
+    display: inline-block;
+    min-width: 34px;
+    font-weight: 700;
+    color: #4d688d;
 }
-[data-testid="stExpander"] summary, [data-testid="stExpander"] summary * { color: #eaf1fb !important; }
-[data-testid="stTabs"] button { color: #c8d6e8 !important; }
-[data-testid="stTabs"] button[aria-selected="true"] { color: #8dbaff !important; }
-/* Custom HTML report blocks: force formerly light backgrounds to dark and override inline dark text */
-section.main div[style*="background: #ffffff"],
-section.main div[style*="background:#ffffff"],
-section.main div[style*="background: #f8f9fa"],
-section.main div[style*="background:#f8f9fa"],
-section.main div[style*="background: #f1f3f5"],
-section.main div[style*="background:#f1f3f5"],
-section.main div[style*="background: #e9ecef"],
-section.main div[style*="background:#e9ecef"] {
-  background: #141f30 !important; color: #e6edf7 !important; border-color: #30435d !important;
+
+.ocr-good {
+    background: rgba(28,140,106,0.08);
+    color: #1b3b2f;
+    border-radius: 4px;
+    padding: 1px 3px;
 }
-section.main div[style*="background: #ffffff"] *,
-section.main div[style*="background:#ffffff"] *,
-section.main div[style*="background: #f8f9fa"] *,
-section.main div[style*="background:#f8f9fa"] *,
-section.main div[style*="background: #f1f3f5"] *,
-section.main div[style*="background:#f1f3f5"] *,
-section.main div[style*="background: #e9ecef"] *,
-section.main div[style*="background:#e9ecef"] * { color: #e1eaf6 !important; }
-section.main table, section.main td { color: #e1eaf6 !important; border-color: #34465f !important; }
-section.main th { background: #1d2d43 !important; color: #f1f5fb !important; }
-section.main td { background: #141f30 !important; }
+
+.ocr-weak {
+    background: rgba(255, 204, 0, 0.25);
+    color: #6b4200;
+    border: 1px solid rgba(214, 138, 0, 0.28);
+    border-radius: 4px;
+    padding: 1px 3px;
+    box-shadow: inset 0 0 0 1px rgba(214,138,0,0.1);
+}
+
+.hero {
+    padding: 1.25rem 1.3rem 1.5rem 1.3rem;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #112d4c 0%, #1d4675 50%, #204b8a 100%);
+    box-shadow: 0 10px 20px rgba(17,45,76,0.18);
+    margin-bottom: 1.25rem;
+}
+
+.eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: #dfeafc;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.hero h1 {
+    color: #ffffff !important;
+    margin: 0 0 8px 0 !important;
+    font-size: 2rem !important;
+}
+
+.hero p {
+    margin: 0 !important;
+    color: #e6efff !important;
+    font-size: 1rem !important;
+}
+
+.panel {
+    background: var(--bank-panel);
+    border: 1px solid var(--bank-border);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 6px 14px rgba(17,45,76,0.08);
+    height: 100%;
+}
+
+.small-note {
+    color: var(--bank-muted);
+    line-height: 1.5;
+}
+
+[data-testid="stDataFrame"] {
+    border-radius: 12px !important;
+}
 
 </style>
 """, unsafe_allow_html=True)
@@ -1997,7 +1878,7 @@ elif page == "Tiếp nhận & trích xuất":
     st.markdown("""
     **Định dạng được hỗ trợ:** ảnh JPG/JPEG/PNG/BMP/WEBP/TIFF và tệp Word DOCX.
 
-    **Kiểm tra ảnh:** hệ thống sẽ cảnh báo sơ bộ nếu ảnh tối, tương phản thấp, độ phân giải thấp hoặc có dấu hiệu mờ; đồng thời hiển thị điểm tin cậy OCR trung bình. Đây chỉ là chỉ báo hỗ trợ, không phải kết luận ảnh/giấy tờ thật hay giả. Luôn đối chiếu thông tin quan trọng với bản gốc.
+    **Kiểm tra ảnh:** hệ thống sẽ cảnh báo sơ bộ nếu ảnh tối, tương phản thấp, độ phân giải thấp hoặc có dấu hiệu mờ; đồng thời hiển thị điểm tin cậy OCR trung bình giúp nhân viên kiểm tra nhanh hơn.
 
     **Đặt tên file để chia nhiều hồ sơ:** `HS1_CCCD.jpg`, `HS1_DiaChi.docx`, `HS1_KYC.docx`, `HS2_CCCD.jpg`...
     Nếu tất cả tên file không có tiền tố hồ sơ, hệ thống mặc định gộp thành **HS1**.
@@ -2027,8 +1908,6 @@ elif page == "Tiếp nhận & trích xuất":
             DEBUG_OCR.clear()
             with st.spinner("Đang khởi tạo OCR và xử lý tài liệu. Với ảnh đầu tiên, bước này có thể mất thời gian..."):
                 df_new, df_sum_new = run_pipeline(paths)
-            # Ensure visible file names are the original uploaded names, not temp paths.
-            name_map = {os.path.basename(p): os.path.basename(p) for p in paths}
             if replace_data or st.session_state.df_extract.empty:
                 st.session_state.df_extract = df_new.copy()
             else:
@@ -2060,7 +1939,12 @@ elif page == "Tiếp nhận & trích xuất":
         st.download_button("⬇️ Tải dữ liệu trích xuất (CSV)", data=_csv_bytes(df_ex),
                            file_name="ket_qua_trich_xuat_kyc.csv", mime="text/csv")
         with st.expander("🔍 Văn bản OCR thô (để kiểm tra khi trích xuất sai)"):
-            st.text_area("OCR text", st.session_state.ocr_debug, height=280)
+            st.markdown(
+                "<div class='ocr-panel'><div class='ocr-header'>OCR debug · low confidence highlighted</div>"
+                + (st.session_state.ocr_debug or "<div>Chưa có dữ liệu OCR.</div>") +
+                "</div>",
+                unsafe_allow_html=True,
+            )
         if st.button("🗑️ Xóa dữ liệu trong phiên", type="secondary"):
             st.session_state.df_extract = pd.DataFrame(columns=COLUMNS)
             st.session_state.df_cross = pd.DataFrame(columns=CROSS_COLS)
@@ -2172,7 +2056,7 @@ elif page == "KYC Summary":
                                file_name="kyc_summary_and_crosscheck.xlsx",
                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             st.markdown("### Nhật ký thao tác thẩm định viên (mô phỏng)")
-            action = st.selectbox("Chọn thao tác", ["Chưa chọn", "ACCEPT — ghi nhận đã chọn chấp nhận", "REQUEST MORE INFORMATION — ghi nhận yêu cầu bổ sung", "MANUAL REVIEW — ghi nhận chuyển kiểm tra thủ công"])
+            action = st.selectbox("Chọn thao tác", ["Chưa chọn", "ACCEPT — ghi nhận đã chọn chấp nhận", "REQUEST MORE INFORMATION — ghi nhận yêu cầu bổ sung", "MANUAL REVIEW — chuyển kiểm tra thủ công"])
             note = st.text_input("Ghi chú (tùy chọn)", key="review_note")
             if st.button("Ghi nhận thao tác"):
                 if action == "Chưa chọn":
@@ -2250,4 +2134,4 @@ Tên file có tiền tố `HS1`, `HS2`... giúp hệ thống chia đúng hồ s�
 """)
 
 st.markdown("---")
-st.caption("Intelligent KYC & Customer Onboarding · Bản Streamlit chuyển đổi từ engine của nhóm. Không nhập hồ sơ khách hàng thật hoặc dữ liệu nhạy cảm lên bản demo công khai.")
+st.caption("Intelligent KYC & Customer Onboarding · Bản Streamlit chuyển đổi từ engine của nhóm. Không nhập hồ sơ khách hàng thật hoặc dữ liệu nhạy cảm lên bản demo.")
