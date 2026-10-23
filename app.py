@@ -415,7 +415,7 @@ def repair_address(t: str) -> str:
         fixed.append(seg)
     if fixed:
         last = fixed[-1]
-        m = re.match(r"(?i)^((?:tinh|tỉnh|thanh pho|thành phố|tp\.?)\s+)?(.+)$", last)
+        m = re.match(r"(?i)^((?:tinh|tỉnh|thanh pho|thành phố|tp\.? )\s+)?(.+)$", last)
         prefix, core = (m.group(1) or ""), m.group(2)
         best = max(_PROV_N, key=lambda pn: _fuzzy_ratio(norm(core), pn[0]))
         if _fuzzy_ratio(norm(core), best[0]) >= 88:
@@ -1435,7 +1435,6 @@ def generate_kyc_dashboard_html(df_extract, df_cross, df_sum, group_mode="prefix
         for _, r in df_case_ex.iterrows():
             fields_table_rows += f"<tr><td><b>{html.escape(str(r['Tên file']))}</b></td><td>{html.escape(str(r['Loại tài liệu']))}</td><td>{html.escape(str(r['Tên trường']))}</td><td>{html.escape(str(r['Giá trị trích xuất']))}</td></tr>"
 
-        # Khung tiêu đề Báo cáo hồ sơ: sửa color thành #ffffff sáng rõ ràng
         card = f"""
         <div style="border: 2px solid #1f4e79; border-radius: 10px; padding: 20px; margin-bottom: 25px; background: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             <div style="background: #1f4e79; color: #ffffff; padding: 12px 18px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
@@ -1466,7 +1465,7 @@ def generate_kyc_dashboard_html(df_extract, df_cross, df_sum, group_mode="prefix
             <details style="margin-top: 15px; background: #f1f3f5; padding: 10px; border-radius: 6px;">
                 <summary style="cursor: pointer; font-weight: bold; color: #1f4e79;">🔍 Xem bảng thông số trích xuất chi tiết ({len(df_case_ex)} trường)</summary>
                 <table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px;">
-                    <tr style="background: #e9ecef;"><th style="padding: 6px; text-align:left;">Tên file</th><th style="padding: 6px; text-align:left;">Loại tài liệu</th><th style="padding: 6px; text-align:left;">Tên trường</th><th style="padding: 6px; text-align:left;">Giá trị</th></tr>
+                    <tr style="background: #e9ecef;"><th style="padding: 6px; text-align:left;">Tên file</th><th style="padding: 6px; text-align:left;">Loại tài liệu</th><th style="padding: 6px; text-align:left;">Tên trường</th><th style="padding: 6px; text-align:left;">Giá trị trích xuất</th></tr>
                     {fields_table_rows}
                 </table>
             </details>
@@ -1499,29 +1498,32 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-
 :root {
-    --navy: #142B4A;
-    --navy-light: #1C3E66;
-    --blue: #2457A7;
-    --blue-hover: #1A437F;
-    --bg: #F3F6FA;
-    --white: #FFFFFF;
-    --text: #243449;
-    --muted: #526176;
-    --border: #D8E1EC;
+    --bg: #f5f0e8;
+    --bg-soft: #edf3eb;
+    --panel: #fffdf9;
+    --panel-alt: #f4efe5;
+    --primary: #476d4d;
+    --primary-deep: #2d472f;
+    --sage: #a8bc8a;
+    --terracotta: #c97c5a;
+    --sand: #e5c79f;
+    --text: #2d332d;
+    --muted: #5d685f;
+    --border: #d9cab3;
+    --shadow: rgba(67, 56, 41, 0.10);
+    --success: #567d59;
+    --warning: #cb8a4c;
+    --danger: #c95a4c;
 }
 
-/* Font chữ thống nhất */
 html, body, [class*="css"],
 button, input, textarea, select {
-    font-family: Inter, -apple-system, BlinkMacSystemFont,
-                 "Segoe UI", Arial, sans-serif !important;
+    font-family: "Segoe UI", Inter, -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;
 }
 
-/* Nền chính */
 .stApp {
-    background: var(--bg) !important;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%) !important;
     color: var(--text) !important;
 }
 
@@ -1531,30 +1533,31 @@ button, input, textarea, select {
     padding-bottom: 2.5rem;
 }
 
-/* Tiêu đề */
 h1, h2, h3, h4, h5, h6 {
-    font-family: Inter, -apple-system, BlinkMacSystemFont,
-                 "Segoe UI", Arial, sans-serif !important;
-    color: var(--navy) !important;
-    font-weight: 650 !important;
+    color: var(--primary-deep) !important;
     letter-spacing: -0.02em;
+    font-weight: 700 !important;
 }
 
-/* Thanh điều hướng bên trái */
 [data-testid="stSidebar"] {
-    background: var(--navy) !important;
+    background: linear-gradient(180deg, #2f4c3d 0%, #1f382d 100%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
 }
 
 [data-testid="stSidebar"] * {
-    color: #F5F8FC !important;
+    color: #f4f1ea !important;
 }
 
-/* Thẻ thống kê */
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] * {
+    color: #f4f1ea !important;
+}
+
 [data-testid="stMetric"] {
-    background: var(--white) !important;
+    background: var(--panel) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 12px !important;
-    padding: 16px !important;
+    border-radius: 16px !important;
+    padding: 18px !important;
+    box-shadow: 0 10px 22px var(--shadow) !important;
 }
 
 [data-testid="stMetricLabel"],
@@ -1564,317 +1567,192 @@ h1, h2, h3, h4, h5, h6 {
 
 [data-testid="stMetricValue"],
 [data-testid="stMetricValue"] * {
-    color: var(--navy) !important;
+    color: var(--primary-deep) !important;
     font-weight: 700 !important;
 }
 
-/* Nút bấm */
 .stButton > button,
 .stDownloadButton > button,
 [data-testid="stFormSubmitButton"] > button {
-    background: var(--blue) !important;
-    color: var(--white) !important;
-    border: 1px solid var(--blue) !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    min-height: 2.5rem;
+    background: linear-gradient(135deg, var(--primary) 0%, #678d66 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    min-height: 2.6rem !important;
+    box-shadow: 0 8px 18px rgba(71, 109, 77, 0.22) !important;
 }
 
 .stButton > button:hover,
 .stDownloadButton > button:hover,
 [data-testid="stFormSubmitButton"] > button:hover {
-    background: var(--blue-hover) !important;
-    color: var(--white) !important;
+    background: linear-gradient(135deg, #3e6044 0%, #567c5a 100%) !important;
+    color: #ffffff !important;
 }
 
-/* Khu vực tải hồ sơ */
+[data-testid="stFileUploader"] section,
+[data-testid="stForm"],
+[data-testid="stExpander"],
+[data-testid="stDataFrame"],
+[data-testid="stTable"],
+[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background: var(--panel) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 22px var(--shadow) !important;
+}
+
 [data-testid="stFileUploader"] section {
-    background: var(--white) !important;
-    border: 1px dashed #A9BCD3 !important;
+    border: 1px dashed #b9c7b1 !important;
+    background: linear-gradient(180deg, #fffdf7 0%, #f7f1e8 100%) !important;
+}
+
+input, textarea, select,
+[data-baseweb="input"] input,
+[data-baseweb="textarea"] textarea,
+[data-baseweb="select"] > div {
+    background: #ffffff !important;
+    color: var(--text) !important;
+    border: 1px solid #d7c8b2 !important;
+    border-radius: 10px !important;
+}
+
+input::placeholder, textarea::placeholder {
+    color: #7b867d !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stAlert"],
+[data-testid="stInfo"],
+[data-testid="stWarning"],
+[data-testid="stSuccess"],
+[data-testid="stError"] {
+    background: #f9f4ea !important;
+    color: var(--text) !important;
+    border: 1px solid #e7d8bf !important;
+    border-left: 5px solid var(--primary) !important;
     border-radius: 12px !important;
 }
 
-/* Ô nhập liệu và văn bản OCR */
-[data-testid="stTextInput"] input,
-[data-testid="stTextArea"] textarea,
-[data-testid="stNumberInput"] input,
-[data-testid="stDateInput"] input {
-    background: var(--white) !important;
+[data-testid="stAlert"] *,
+[data-testid="stInfo"] *,
+[data-testid="stWarning"] *,
+[data-testid="stSuccess"] *,
+[data-testid="stError"] * {
     color: var(--text) !important;
-    border: 1px solid #C8D4E2 !important;
-    border-radius: 8px !important;
+    opacity: 1 !important;
 }
 
-[data-testid="stTextArea"] textarea {
+[data-testid="stAlert"] a {
+    color: var(--primary) !important;
+}
+
+section.main [data-testid="stRadio"] label *,
+section.main [data-testid="stCheckbox"] label *,
+section.main [data-testid="stMarkdownContainer"] *,
+section.main [data-testid="stCaptionContainer"] * {
+    color: var(--text) !important;
+}
+
+.hero {
+    background: linear-gradient(135deg, #f6f0e4 0%, #edf2ea 100%);
+    border: 1px solid #d9cab3;
+    border-radius: 18px;
+    padding: 1.5rem 1.6rem;
+    box-shadow: 0 12px 24px var(--shadow);
+    margin-bottom: 1.2rem;
+}
+
+.eyebrow {
+    display: inline-block;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(71, 109, 77, 0.12);
+    color: var(--primary-deep);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: clamp(2rem, 3vw, 2.7rem);
+    color: var(--primary-deep) !important;
+}
+
+.hero p {
+    margin: 8px 0 0;
+    color: var(--muted) !important;
+    font-size: 1rem;
+}
+
+.panel {
+    background: linear-gradient(180deg, #fffdf9 0%, #f4efe4 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem 1.1rem;
+    box-shadow: 0 10px 20px var(--shadow);
+    height: 100%;
+}
+
+.small-note {
+    color: var(--muted);
+    font-size: 0.92rem;
     line-height: 1.6;
 }
 
-/* Bảng dữ liệu */
-[data-testid="stDataFrame"],
-[data-testid="stTable"] {
-    background: var(--white) !important;
+section.main table {
     color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 10px !important;
-}
-
-/* Khung nội dung mở rộng */
-[data-testid="stExpander"] {
-    background: var(--white) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 10px !important;
-}
-
-/* Chú thích */
-[data-testid="stCaptionContainer"] {
-    color: var(--muted) !important;
-}
-
-hr {
     border-color: var(--border) !important;
 }
 
-/* Tăng độ tương phản cho thông báo, radio và nội dung chính */
-[data-testid="stAlert"] {
-    color: #243449 !important;
-}
-[data-testid="stAlert"] p,
-[data-testid="stAlert"] div,
-[data-testid="stAlert"] span,
-[data-testid="stAlert"] li {
-    color: #243449 !important;
-}
-[data-testid="stAlert"] a {
-    color: #174EA6 !important;
-    text-decoration: underline !important;
-}
-/* Giữ màu chữ dễ đọc trên nền xanh/vàng/đỏ nhạt của các hộp trạng thái */
-[data-testid="stAlert"] [data-testid="stMarkdownContainer"] * {
-    color: #243449 !important;
-}
-/* Nội dung radio/checkbox trong vùng chính: không dùng chữ trắng trên nền sáng */
-section.main [data-testid="stRadio"] label,
-section.main [data-testid="stRadio"] label p,
-section.main [data-testid="stCheckbox"] label,
-section.main [data-testid="stCheckbox"] label p,
-section.main [data-testid="stMarkdownContainer"],
-section.main [data-testid="stMarkdownContainer"] p,
-section.main [data-testid="stMarkdownContainer"] li,
-section.main [data-testid="stCaptionContainer"] {
-    color: #243449 !important;
-}
-/* Radio option text may be wrapped in several nested elements */
-section.main [data-testid="stRadio"] label * {
-    color: #243449 !important;
+section.main th {
+    background: #edf0de !important;
+    color: var(--primary-deep) !important;
+    border-color: var(--border) !important;
 }
 
-/* ===== PROFESSIONAL DARK THEME ===== */
-:root {
-    color-scheme: dark;
-    --navy: #e8eef8;
-    --navy-light: #c7d5e8;
-    --blue: #3978d4;
-    --blue-hover: #2d65b8;
-    --bg: #0b1220;
-    --white: #151f30;
-    --text: #e6edf7;
-    --muted: #a8b6ca;
-    --border: #2b3a50;
+section.main td {
+    background: #fffdf9 !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
 }
-.stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"], section.main {
-    background: #0b1220 !important;
-    color: #e6edf7 !important;
-}
-.block-container { color: #e6edf7 !important; }
-section.main h1, section.main h2, section.main h3,
-section.main h4, section.main h5, section.main h6 { color: #f1f5fb !important; }
-section.main p, section.main li, section.main label,
-section.main [data-testid="stMarkdownContainer"],
-section.main [data-testid="stMarkdownContainer"] *,
-section.main [data-testid="stCaptionContainer"] { color: #d5dfed !important; }
-[data-testid="stSidebar"], [data-testid="stSidebar"] > div {
-    background: #101b2c !important;
-    border-right: 1px solid #26364d !important;
-}
-[data-testid="stSidebar"] * { color: #e4ecf7 !important; }
-[data-testid="stMetric"], [data-testid="stExpander"],
-[data-testid="stDataFrame"], [data-testid="stTable"],
-[data-testid="stForm"], [data-testid="stFileUploader"] section,
-[data-testid="stVerticalBlockBorderWrapper"] > div {
-    background: #141f30 !important;
-    color: #e6edf7 !important;
-    border-color: #2c3d54 !important;
-}
-[data-testid="stMetricLabel"], [data-testid="stMetricLabel"] *,
-[data-testid="stMetricValue"], [data-testid="stMetricValue"] * { color: #f1f5fb !important; }
-input, textarea, select, [data-baseweb="input"] input,
-[data-baseweb="textarea"] textarea, [data-baseweb="select"] > div {
-    background: #0f1928 !important;
-    color: #f1f5fb !important;
-    border-color: #3a4d67 !important;
-}
-input::placeholder, textarea::placeholder { color: #9aabc2 !important; }
-.stButton > button, .stDownloadButton > button,
-[data-testid="stFormSubmitButton"] > button {
-    background: #2868c7 !important; color: #ffffff !important;
-    border: 1px solid #4b8be8 !important; border-radius: 8px !important;
-}
-.stButton > button:hover, .stDownloadButton > button:hover,
-[data-testid="stFormSubmitButton"] > button:hover { background: #3479dc !important; }
-[data-testid="stAlert"] { background: #172438 !important; border: 1px solid #344964 !important; }
-[data-testid="stAlert"] *, [data-testid="stAlert"] p,
-[data-testid="stAlert"] span, [data-testid="stAlert"] div { color: #e8eef8 !important; }
-[data-testid="stAlert"] a { color: #8dbaff !important; }
-[data-testid="stRadio"] label *, [data-testid="stCheckbox"] label * { color: #e1eaf6 !important; }
-[data-testid="stTabs"] button { color: #c8d6e8 !important; }
-[data-testid="stTabs"] button[aria-selected="true"] { color: #8dbaff !important; }
-[data-testid="stProgressBar"] > div { background: #25364d !important; }
-hr { border-color: #2b3a50 !important; }
-/* HTML report cards: override older inline light backgrounds while retaining semantic status accents */
+
 section.main div[style*="background: #ffffff"],
 section.main div[style*="background: #f8f9fa"],
 section.main div[style*="background: #f1f3f5"],
-section.main div[style*="background: #e9ecef"] {
-    background: #141f30 !important; color: #e6edf7 !important;
-    border-color: #30435d !important;
+section.main div[style*="background: #e9ecef"],
+section.main div[style*="background:#ffffff"],
+section.main div[style*="background:#f8f9fa"],
+section.main div[style*="background:#f1f3f5"],
+section.main div[style*="background:#e9ecef"] {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 10px 20px var(--shadow) !important;
 }
+
 section.main div[style*="background: #ffffff"] *,
 section.main div[style*="background: #f8f9fa"] *,
 section.main div[style*="background: #f1f3f5"] *,
-section.main div[style*="background: #e9ecef"] * { color: #e1eaf6 !important; }
-section.main table { color: #e1eaf6 !important; border-color: #34465f !important; }
-section.main th { background: #1d2d43 !important; color: #f1f5fb !important; }
-section.main td { background: #141f30 !important; color: #dbe5f2 !important; border-color: #34465f !important; }
-[data-testid="stFileUploader"] small, [data-testid="stFileUploader"] span { color: #c8d6e8 !important; }
-[data-testid="stSelectbox"] *, [data-testid="stMultiSelect"] * { color: #e6edf7 !important; }
+section.main div[style*="background: #e9ecef"] *,
+section.main div[style*="background:#ffffff"] *,
+section.main div[style*="background:#f8f9fa"] *,
+section.main div[style*="background:#f1f3f5"] *,
+section.main div[style*="background:#e9ecef"] * {
+    color: var(--text) !important;
+}
 
-/* Hiển thị trên màn hình nhỏ */
 @media (max-width: 768px) {
     .block-container {
         padding: 1rem;
     }
+    .hero {
+        padding: 1.1rem 1rem;
+    }
 }
-
-
-
-/* FINAL DARK CONTRAST OVERRIDES */
-[data-testid="stAlert"], [data-testid="stAlert"] > div,
-[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
-[data-testid="stInfo"], [data-testid="stWarning"],
-[data-testid="stSuccess"], [data-testid="stError"] {
-    background: #172438 !important; color: #F3F7FF !important;
-    border-color: #49617f !important;
-}
-[data-testid="stAlert"] *, [data-testid="stAlert"] p,
-[data-testid="stAlert"] div, [data-testid="stAlert"] span,
-[data-testid="stAlert"] li, [data-testid="stAlert"] strong,
-[data-testid="stAlert"] em, [data-testid="stInfo"] *,
-[data-testid="stWarning"] *, [data-testid="stSuccess"] *,
-[data-testid="stError"] * {
-    color: #F3F7FF !important; opacity: 1 !important;
-}
-[data-testid="stAlert"] a { color: #9CC7FF !important; }
-[data-testid="stRadio"] label *, [data-testid="stCheckbox"] label *,
-[data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li,
-[data-testid="stCaptionContainer"] { color: #DCE7F7 !important; }
-[data-testid="stSelectbox"] label, [data-testid="stTextInput"] label,
-[data-testid="stTextArea"] label, [data-testid="stFileUploader"] label {
-    color: #E6EDF7 !important;
-}
-[data-testid="stFileUploader"] section, [data-testid="stFileUploader"] section * {
-    color: #E6EDF7 !important;
-}
-[data-testid="stFileUploader"] button {
-    background: #263a55 !important; color: #FFFFFF !important; border-color: #57769e !important;
-}
-/* GLOBAL DARK THEME CONTRAST: all steps, widgets, dropdowns and custom HTML */
-:root { color-scheme: dark !important; }
-.stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"],
-section.main, .block-container { background-color: #0b1220 !important; color: #e6edf7 !important; }
-section.main [data-testid="stMarkdownContainer"],
-section.main [data-testid="stMarkdownContainer"] *,
-section.main p, section.main li, section.main label,
-section.main [data-testid="stWidgetLabel"],
-section.main [data-testid="stWidgetLabel"] *,
-section.main [data-testid="stCaptionContainer"],
-section.main [data-testid="stCaptionContainer"] *,
-section.main [data-testid="stHelp"], section.main [data-testid="stHelp"] * {
-  color: #e1eaf6 !important; opacity: 1 !important;
-}
-section.main h1, section.main h2, section.main h3, section.main h4,
-section.main h5, section.main h6 { color: #f5f8ff !important; }
-/* Alerts: readable light text on dark surfaces */
-[data-testid="stAlert"], [data-testid="stAlert"] > div,
-[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
-[data-testid="stInfo"], [data-testid="stWarning"],
-[data-testid="stSuccess"], [data-testid="stError"] {
-  background: #172438 !important; color: #f3f7ff !important;
-  border-color: #49617f !important;
-}
-[data-testid="stAlert"] *, [data-testid="stInfo"] *,
-[data-testid="stWarning"] *, [data-testid="stSuccess"] *,
-[data-testid="stError"] * { color: #f3f7ff !important; opacity: 1 !important; }
-/* Text inputs, selectboxes, multiselect chips, date/time and number inputs */
-input, textarea, select, [data-baseweb="input"] input,
-[data-baseweb="textarea"] textarea, [data-baseweb="select"] *,
-[data-testid="stTextInput"] *, [data-testid="stTextArea"] *,
-[data-testid="stNumberInput"] *, [data-testid="stDateInput"] *,
-[data-testid="stTimeInput"] *, [data-testid="stMultiSelect"] *,
-[data-testid="stSelectbox"] *, [data-testid="stSlider"] *,
-[data-testid="stRadio"] label *, [data-testid="stCheckbox"] label *,
-[data-testid="stToggle"] label *, [data-testid="stFileUploader"] * {
-  color: #eaf1fb !important;
-}
-input, textarea, select, [data-baseweb="input"] input,
-[data-baseweb="textarea"] textarea, [data-baseweb="select"] > div {
-  background-color: #0f1928 !important; border-color: #3a4d67 !important;
-}
-input::placeholder, textarea::placeholder { color: #a8b8ce !important; opacity: 1 !important; }
-/* Dropdown popup may render outside the main section */
-[role="listbox"], [role="option"], [data-baseweb="popover"],
-[data-baseweb="menu"], [data-baseweb="select"] [role="option"] {
-  background: #141f30 !important; color: #eaf1fb !important;
-}
-[role="option"] *, [role="listbox"] * { color: #eaf1fb !important; }
-/* Upload panel and buttons */
-[data-testid="stFileUploader"], [data-testid="stFileUploader"] section,
-[data-testid="stFileUploaderDropzone"] { background: #141f30 !important; color: #eaf1fb !important; border-color: #3a4d67 !important; }
-.stButton button, .stDownloadButton button, [data-testid="stFormSubmitButton"] button {
-  background: #2868c7 !important; color: #ffffff !important; border-color: #4b8be8 !important;
-}
-.stButton button *, .stDownloadButton button *, [data-testid="stFormSubmitButton"] button * { color: #ffffff !important; }
-/* Expander, tabs, forms, tables and metric cards */
-[data-testid="stExpander"], [data-testid="stExpander"] details,
-[data-testid="stForm"], [data-testid="stVerticalBlockBorderWrapper"] > div,
-[data-testid="stMetric"], [data-testid="stDataFrame"], [data-testid="stTable"] {
-  background: #141f30 !important; color: #e6edf7 !important; border-color: #2c3d54 !important;
-}
-[data-testid="stExpander"] summary, [data-testid="stExpander"] summary * { color: #eaf1fb !important; }
-[data-testid="stTabs"] button { color: #c8d6e8 !important; }
-[data-testid="stTabs"] button[aria-selected="true"] { color: #8dbaff !important; }
-/* Custom HTML report blocks: force formerly light backgrounds to dark and override inline dark text */
-section.main div[style*="background: #ffffff"],
-section.main div[style*="background:#ffffff"],
-section.main div[style*="background: #f8f9fa"],
-section.main div[style*="background:#f8f9fa"],
-section.main div[style*="background: #f1f3f5"],
-section.main div[style*="background:#f1f3f5"],
-section.main div[style*="background: #e9ecef"],
-section.main div[style*="background:#e9ecef"] {
-  background: #141f30 !important; color: #e6edf7 !important; border-color: #30435d !important;
-}
-section.main div[style*="background: #ffffff"] *,
-section.main div[style*="background:#ffffff"] *,
-section.main div[style*="background: #f8f9fa"] *,
-section.main div[style*="background:#f8f9fa"] *,
-section.main div[style*="background: #f1f3f5"] *,
-section.main div[style*="background:#f1f3f5"] *,
-section.main div[style*="background: #e9ecef"] *,
-section.main div[style*="background:#e9ecef"] * { color: #e1eaf6 !important; }
-section.main table, section.main td { color: #e1eaf6 !important; border-color: #34465f !important; }
-section.main th { background: #1d2d43 !important; color: #f1f5fb !important; }
-section.main td { background: #141f30 !important; }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -1997,7 +1875,7 @@ elif page == "Tiếp nhận & trích xuất":
     st.markdown("""
     **Định dạng được hỗ trợ:** ảnh JPG/JPEG/PNG/BMP/WEBP/TIFF và tệp Word DOCX.
 
-    **Kiểm tra ảnh:** hệ thống sẽ cảnh báo sơ bộ nếu ảnh tối, tương phản thấp, độ phân giải thấp hoặc có dấu hiệu mờ; đồng thời hiển thị điểm tin cậy OCR trung bình. Đây chỉ là chỉ báo hỗ trợ, không phải kết luận ảnh/giấy tờ thật hay giả. Luôn đối chiếu thông tin quan trọng với bản gốc.
+    **Kiểm tra ảnh:** hệ thống sẽ cảnh báo sơ bộ nếu ảnh tối, tương phản thấp, độ phân giải thấp hoặc có dấu hiệu mờ; đồng thời hiển thị điểm tin cậy OCR trung bình.
 
     **Đặt tên file để chia nhiều hồ sơ:** `HS1_CCCD.jpg`, `HS1_DiaChi.docx`, `HS1_KYC.docx`, `HS2_CCCD.jpg`...
     Nếu tất cả tên file không có tiền tố hồ sơ, hệ thống mặc định gộp thành **HS1**.
@@ -2027,8 +1905,6 @@ elif page == "Tiếp nhận & trích xuất":
             DEBUG_OCR.clear()
             with st.spinner("Đang khởi tạo OCR và xử lý tài liệu. Với ảnh đầu tiên, bước này có thể mất thời gian..."):
                 df_new, df_sum_new = run_pipeline(paths)
-            # Ensure visible file names are the original uploaded names, not temp paths.
-            name_map = {os.path.basename(p): os.path.basename(p) for p in paths}
             if replace_data or st.session_state.df_extract.empty:
                 st.session_state.df_extract = df_new.copy()
             else:
@@ -2172,7 +2048,7 @@ elif page == "KYC Summary":
                                file_name="kyc_summary_and_crosscheck.xlsx",
                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             st.markdown("### Nhật ký thao tác thẩm định viên (mô phỏng)")
-            action = st.selectbox("Chọn thao tác", ["Chưa chọn", "ACCEPT — ghi nhận đã chọn chấp nhận", "REQUEST MORE INFORMATION — ghi nhận yêu cầu bổ sung", "MANUAL REVIEW — ghi nhận chuyển kiểm tra thủ công"])
+            action = st.selectbox("Chọn thao tác", ["Chưa chọn", "ACCEPT — ghi nhận đã chọn chấp nhận", "REQUEST MORE INFORMATION — ghi nhận yêu cầu bổ sung", "MANUAL REVIEW — yêu cầu xem xét thủ công"])
             note = st.text_input("Ghi chú (tùy chọn)", key="review_note")
             if st.button("Ghi nhận thao tác"):
                 if action == "Chưa chọn":
@@ -2250,4 +2126,4 @@ Tên file có tiền tố `HS1`, `HS2`... giúp hệ thống chia đúng hồ s�
 """)
 
 st.markdown("---")
-st.caption("Intelligent KYC & Customer Onboarding · Bản Streamlit chuyển đổi từ engine của nhóm. Không nhập hồ sơ khách hàng thật hoặc dữ liệu nhạy cảm lên bản demo công khai.")
+st.caption("Intelligent KYC & Customer Onboarding · Bản Streamlit chuyển đổi từ engine của nhóm. Không nhập hồ sơ khách hàng thật hoặc dữ liệu nhạy cảm lên bản demo...")
