@@ -964,7 +964,7 @@ def cmp_gender(a, b):
     return (ST_OK, 100.0, "") if norm(a) == norm(b) else (ST_BAD, 0.0, "Giới tính khác nhau")
 
 
-# ---- Địa chỉ: tách theo dấu phẩy, bỏ từ hành chính (Phường/Xã/Quận/Huyện/Tỉnh...), viết tắt -> đầy đủ ----
+# ---- Địa chỉ: tách theo d���u phẩy, bỏ từ hành chính (Phường/Xã/Quận/Huyện/Tỉnh...), viết tắt -> đầy đủ ----
 ADDR_ABBR = {"tp": "thanh pho", "tt": "thi tran", "tx": "thi xa", "q": "quan", "h": "huyen",
              "p": "phuong", "x": "xa", "kp": "khu pho"}
 ADMIN_WORDS_RE = re.compile(r"\b(thanh pho|thi tran|thi xa|khu pho|tinh|quan|huyen|phuong|xa|"
@@ -1900,11 +1900,7 @@ elif page == "Tiếp nhận & trích xuất":
     st.markdown("""
     **Định dạng được hỗ trợ:** ảnh JPG/JPEG/PNG/BMP/WEBP/TIFF và tệp Word DOCX.
 
-    **Kiểm tra ảnh:** hệ thống sẽ cảnh báo sơ bộ nếu ảnh tối, tương phản thấp, độ phân giải thấp hoặc có dấu hiệu mờ; đồng thời hiển thị điểm tin cậy OCR trung bình giúp nhân viên kiểm tra nhanh hơn.
-
-    **Đặt tên file để chia nhiều hồ sơ:** `HS1_CCCD.jpg`, `HS1_DiaChi.docx`, `HS1_KYC.docx`, `HS2_CCCD.jpg`...
-    Nếu tất cả tên file không có tiền tố hồ sơ, hệ thống mặc định gộp thành **HS1**.
-    """)
+    **Kiểm tra ảnh:** hệ thống sẽ cảnh báo sơ bộ nếu ảnh tối, tương phản thấp, độ phân giải thấp hoặc có dấu hiệu mờ; đồng thời hiển thị điểm t[...]""")
     uploads = st.file_uploader(
         "Chọn tài liệu KYC",
         type=["jpg", "jpeg", "png", "bmp", "webp", "tif", "tiff", "docx"],
@@ -2002,13 +1998,15 @@ elif page == "Đối chiếu hồ sơ":
             st.dataframe(df_sm, use_container_width=True, hide_index=True)
         if not df_cr.empty:
             st.markdown("### Chi tiết đối chiếu")
+
+            visible_cols = [col for col in df_cr.columns if col != "Mức độ"]
             status_filter = st.multiselect(
                 "Lọc kết quả",
                 options=[ST_OK, ST_WARN, ST_BAD, ST_INFO, ST_NA],
                 default=[ST_WARN, ST_BAD, ST_NA],
             )
             filtered = df_cr[df_cr["Kết quả"].isin(status_filter)] if status_filter else df_cr
-            st.dataframe(filtered, use_container_width=True, hide_index=True)
+            st.dataframe(filtered[visible_cols], use_container_width=True, hide_index=True)
         elif not df_sm.empty:
             st.warning("Không tạo được dòng đối chiếu chi tiết; kiểm tra xem hồ sơ có đủ loại tài liệu và trường dữ liệu không.")
         st.download_button("⬇️ Tải báo cáo đối chiếu Excel",
@@ -2078,7 +2076,7 @@ elif page == "KYC Summary":
                                file_name="kyc_summary_and_crosscheck.xlsx",
                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             st.markdown("### Nhật ký thao tác thẩm định viên (mô phỏng)")
-            action = st.selectbox("Chọn thao tác", ["Chưa chọn", "ACCEPT — ghi nhận đã chọn chấp nhận", "REQUEST MORE INFORMATION — ghi nhận yêu cầu bổ sung", "MANUAL REVIEW — chuyển kiểm tra thủ công"])
+            action = st.selectbox("Chọn thao tác", ["Chưa chọn", "ACCEPT — ghi nhận đã chọn chấp nhận", "REQUEST MORE INFORMATION — ghi nhận yêu cầu bổ sung", "MANUAL REVIEW — yêu cầu kiểm tra thủ công"])
             note = st.text_input("Ghi chú (tùy chọn)", key="review_note")
             if st.button("Ghi nhận thao tác"):
                 if action == "Chưa chọn":
@@ -2156,4 +2154,4 @@ Tên file có tiền tố `HS1`, `HS2`... giúp hệ thống chia đúng hồ s�
 """)
 
 st.markdown("---")
-st.caption("Intelligent KYC & Customer Onboarding · Bản Streamlit chuyển đổi từ engine của nhóm. Không nhập hồ sơ khách hàng thật hoặc dữ liệu nhạy cảm lên bản demo.")
+st.caption("Intelligent KYC & Customer Onboarding · Bản Streamlit chuyển đổi từ engine của nhóm. Không nhập hồ sơ khách hàng thật hoặc dữ liệu nhạy cảm lên bản demo")
